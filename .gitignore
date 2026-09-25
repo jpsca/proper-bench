@@ -1,0 +1,11 @@
+.venv*/
+__pycache__/
+*.py[cod]
+results/
+app/fortunes.db*
+beego/beego-bench
+topcoat/target/
+django_app/db.sqlite3
+rails_app/tmp/
+rails_app/log/
+rails_app/storage/*.sqlite3*

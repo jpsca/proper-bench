@@ -1,0 +1,19 @@
+[project]
+name = "proper-bench"
+version = "0.1.0"
+description = "Benchmarks: Proper against Beego, Topcoat, Rails and Django"
+requires-python = ">=3.14,<4"
+dependencies = [
+    "proper",
+    "django>=6.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+proper = { path = "../proper", editable = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
