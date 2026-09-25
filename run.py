@@ -11,8 +11,10 @@ server and prints a Markdown table. Results are also written as JSON to
 
 Every app serves the same three routes over the same SQLite file, `app/fortunes.db`:
 
-- `app/`      Proper, over WSGI and over RSGI, with Granian
-- `django_app/` Django, over WSGI, with Granian
+- `app/`         Proper, over WSGI and over RSGI, with Granian
+- `fastapi_app/` FastAPI + SQLAlchemy, over ASGI, with Granian
+- `flask_app/`   Flask + Flask-SQLAlchemy, over WSGI, with Granian
+- `django_app/`  Django, over WSGI, with Granian
 - `rails_app/` Ruby on Rails, with Puma
 - `beego/`    Go, Beego
 - `topcoat/`  Rust, Topcoat
@@ -115,6 +117,8 @@ def configs(workers: int, blocking_threads: int, gil_python: str | None) -> list
     if gil_python:
         out.append(granian("proper wsgi, gil", "server:app", "wsgi", python=gil_python))
         out.append(granian("proper rsgi, gil", "server:app", "rsgi", python=gil_python))
+    out.append(granian("fastapi asgi", "fastapi_app.main:app", "asgi"))
+    out.append(granian("flask wsgi", "flask_app.main:app", "wsgi"))
     if (DJANGO_DIR / "wsgi.py").exists():
         out.append(granian(
             "django wsgi", "django_app.wsgi:application", "wsgi",

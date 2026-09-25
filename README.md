@@ -10,10 +10,12 @@ first run):
 - `/fortunes`: 12 rows read from SQLite, one added, sorted, rendered with a
   template and HTML-escaped. The one that resembles a real page.
 
-| directory     | framework           | server           |
-|---------------|---------------------|------------------|
-| `app/`        | Proper (Python)     | Granian, WSGI and RSGI |
-| `django_app/` | Django (Python)     | Granian, WSGI    |
+| directory      | framework                    | server                 |
+|----------------|------------------------------|------------------------|
+| `app/`         | Proper (Python)              | Granian, WSGI and RSGI |
+| `flask_app/`   | Flask + Flask-SQLAlchemy     | Granian, WSGI          |
+| `django_app/`  | Django                       | Granian, WSGI          |
+| `fastapi_app/` | FastAPI + SQLAlchemy         | Granian, ASGI          |
 | `rails_app/`  | Ruby on Rails       | Puma             |
 | `beego/`      | Beego (Go)          | its own          |
 | `topcoat/`    | Topcoat (Rust)      | its own          |
@@ -25,20 +27,24 @@ first run):
 from one run. Python 3.14.4 free-threaded, Ruby 3.4.9, Go 1.27, Rust 1.98.
 Granian and Puma with 16 threads in total: 4 workers of 4 threads, or for
 Proper's second row 2 processes of 2 workers of 4 threads, which is what
-`proper run` does with `PROCESSES = 2`. Go and Rust use every core.
+`proper run` does with `PROCESSES = 2`. FastAPI runs 4 ASGI workers and its
+own thread pool for the sync endpoints. Go and Rust use every core.
 
-| server                         | plaintext rps | json rps | fortunes rps | fortunes p50 | fortunes p99 | RSS    |
-|--------------------------------|--------------:|---------:|-------------:|-------------:|-------------:|-------:|
-| Proper 0.26, Granian WSGI      |       106,162 |  100,401 |       32,704 |       1.7 ms |       5.2 ms | 183 MB |
-| Proper 0.26, 2 processes       |       113,861 |  115,873 |       33,882 |       1.7 ms |       4.5 ms | 311 MB |
-| Django 6.1, Granian WSGI       |        52,782 |   50,792 |        9,995 |       5.8 ms |      32.0 ms | 157 MB |
-| Rails 8.1, Puma                |         9,454 |   10,334 |        6,557 |       9.7 ms |      13.1 ms | 494 MB |
-| Beego 2.3 (Go)                 |       305,939 |  270,017 |       34,611 |       1.1 ms |       9.3 ms |  59 MB |
-| Topcoat 0.9 (Rust)             |       404,090 |  413,080 |      190,467 |       0.3 ms |       0.9 ms |  17 MB |
+| server                              | plaintext rps | json rps | fortunes rps | fortunes p50 | fortunes p99 | RSS    |
+|-------------------------------------|--------------:|---------:|-------------:|-------------:|-------------:|-------:|
+| Proper 0.26, Granian WSGI           |       115,945 |  109,762 |       35,130 |       1.7 ms |       4.3 ms | 185 MB |
+| Proper 0.26, 2 processes            |       130,966 |  121,071 |       34,084 |       1.7 ms |       4.6 ms | 317 MB |
+| Flask 3.1 + SQLAlchemy, Granian WSGI |       78,355 |   72,738 |       13,957 |       3.1 ms |      42.1 ms | 192 MB |
+| Django 6.1, Granian WSGI            |        55,801 |   51,790 |       10,306 |       4.7 ms |      31.1 ms | 162 MB |
+| FastAPI 0.141 + SQLAlchemy, Granian ASGI |   44,983 |   42,384 |       11,509 |       3.5 ms |      60.4 ms | 320 MB |
+| Rails 8.1, Puma                     |         9,782 |   10,420 |        6,530 |       9.6 ms |      13.7 ms | 470 MB |
+| Beego 2.3 (Go)                      |       317,831 |  282,084 |       35,884 |       1.0 ms |       9.1 ms |  62 MB |
+| Topcoat 0.9 (Rust)                  |       423,709 |  418,326 |      200,165 |       0.3 ms |       0.8 ms |  17 MB |
 
 RSS is the whole process tree after the run. Between runs, Proper's plaintext
-moves within about 10% and Beego's fortunes between 31k and 35k; read Proper
-and Beego on fortunes as even.
+moves within about 10% and Beego's fortunes between 31k and 36k; read Proper
+and Beego on fortunes as even. SQLAlchemy 2.1 has no compiled wheel for
+free-threaded Python yet, so Flask and FastAPI run its pure-Python paths.
 
 ## Running
 
@@ -78,6 +84,9 @@ uv run python threads.py /plaintext       # how Proper scales across threads in 
 - Compression is off everywhere.
 - Rails runs in production mode with `skip_forgery_protection` on these
   routes; Django runs its standard middleware stack, with signed-cookie
-  sessions; Proper runs its full pipeline.
+  sessions; Flask and FastAPI run as generated, with no extra middleware;
+  Proper runs its full pipeline.
+- The SQLAlchemy apps use sync sessions, the common way; FastAPI runs those
+  endpoints in its thread pool.
 - bombardier runs on the same machine and competes for CPU: the fastest
   servers are held back by it more than the slow ones are.
