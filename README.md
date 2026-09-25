@@ -21,20 +21,24 @@ first run):
 ## Results
 
 2026-09-25, on an Intel Core i5-14400 (6 performance and 4 efficiency cores,
-16 hardware threads), Linux, 64 connections, 8 seconds per route. Python
-3.14.4 free-threaded, Ruby 3.4.9, Go 1.27, Rust 1.98. Granian and Puma with
-4 workers of 4 threads; Go and Rust on every core.
+16 hardware threads), Linux, 64 connections, 8 seconds per route, all rows
+from one run. Python 3.14.4 free-threaded, Ruby 3.4.9, Go 1.27, Rust 1.98.
+Granian and Puma with 16 threads in total: 4 workers of 4 threads, or for
+Proper's second row 2 processes of 2 workers of 4 threads, which is what
+`proper run` does with `PROCESSES = 2`. Go and Rust use every core.
 
-| server            | plaintext rps | json rps | fortunes rps | fortunes p50 | fortunes p99 | RSS    |
-|-------------------|--------------:|---------:|-------------:|-------------:|-------------:|-------:|
-| Proper 0.26, Granian WSGI | 115,522 | 108,974 |       34,975 |       1.7 ms |       4.3 ms | 181 MB |
-| Django 6.1, Granian WSGI  |  54,903 |  51,678 |       10,320 |       5.6 ms |      31.2 ms | 160 MB |
-| Rails 8.1, Puma           |   9,797 |  10,598 |        6,610 |       9.6 ms |      13.9 ms | 469 MB |
-| Beego 2.3 (Go)            | 303,471 | 266,377 |       31,555 |       1.1 ms |      10.6 ms |  63 MB |
-| Topcoat 0.9 (Rust)        | 422,870 | 423,079 |      197,026 |       0.3 ms |       0.8 ms |  16 MB |
+| server                         | plaintext rps | json rps | fortunes rps | fortunes p50 | fortunes p99 | RSS    |
+|--------------------------------|--------------:|---------:|-------------:|-------------:|-------------:|-------:|
+| Proper 0.26, Granian WSGI      |       106,162 |  100,401 |       32,704 |       1.7 ms |       5.2 ms | 183 MB |
+| Proper 0.26, 2 processes       |       113,861 |  115,873 |       33,882 |       1.7 ms |       4.5 ms | 311 MB |
+| Django 6.1, Granian WSGI       |        52,782 |   50,792 |        9,995 |       5.8 ms |      32.0 ms | 157 MB |
+| Rails 8.1, Puma                |         9,454 |   10,334 |        6,557 |       9.7 ms |      13.1 ms | 494 MB |
+| Beego 2.3 (Go)                 |       305,939 |  270,017 |       34,611 |       1.1 ms |       9.3 ms |  59 MB |
+| Topcoat 0.9 (Rust)             |       404,090 |  413,080 |      190,467 |       0.3 ms |       0.9 ms |  17 MB |
 
-RSS is the whole process tree after the run. Beego's fortunes figure moves
-between 31k and 35k from run to run; read it and Proper's as even.
+RSS is the whole process tree after the run. Between runs, Proper's plaintext
+moves within about 10% and Beego's fortunes between 31k and 35k; read Proper
+and Beego on fortunes as even.
 
 ## Running
 

@@ -84,10 +84,13 @@ class Config:
     python: str = sys.executable
     env: dict = field(default_factory=dict)
     cwd: str | None = None
+    # Copies of the process to start, all on the same port (SO_REUSEPORT),
+    # like Proper's PROCESSES setting.
+    copies: int = 1
 
 
 def configs(workers: int, blocking_threads: int, gil_python: str | None) -> list[Config]:
-    def granian(name, target, interface, python=sys.executable, env=None):
+    def granian(name, target, interface, python=sys.executable, env=None, workers=workers, copies=1):
         argv = [
             python, "-m", "granian", target,
             "--interface", interface,
@@ -97,10 +100,16 @@ def configs(workers: int, blocking_threads: int, gil_python: str | None) -> list
         ]
         if interface == "wsgi":
             argv += ["--blocking-threads", str(blocking_threads)]
-        return Config(name, argv, python=python, env=env or {})
+        return Config(name, argv, python=python, env=env or {}, copies=copies)
 
     out = [
         granian("proper wsgi", "server:app", "wsgi"),
+        # The same number of threads, split between two interpreters: what
+        # `proper run` does with PROCESSES = 2 and half the WORKERS.
+        granian(
+            "proper wsgi, 2 processes", "server:app", "wsgi",
+            workers=max(1, workers // 2), copies=2,
+        ),
         granian("proper rsgi", "server:app", "rsgi"),
     ]
     if gil_python:
@@ -177,30 +186,36 @@ def bombard(url: str, duration: str, connections: int) -> dict:
 
 def run_config(cfg: Config, duration: str, connections: int) -> dict:
     env = {**os.environ, "PYTHONPATH": str(ROOT), **cfg.env}
-    proc = subprocess.Popen(
-        cfg.argv, cwd=cfg.cwd or ROOT, env=env,
-        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, start_new_session=True,
-    )
+    procs = [
+        subprocess.Popen(
+            cfg.argv, cwd=cfg.cwd or ROOT, env=env,
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, start_new_session=True,
+        )
+        for _ in range(cfg.copies)
+    ]
     result: dict = {"name": cfg.name, "endpoints": {}}
     try:
-        wait_port(PORT, proc)
+        for p in procs:
+            wait_port(PORT, p)
         time.sleep(1.0)
         base = f"http://127.0.0.1:{PORT}"
         for ep in ENDPOINTS:
             bombard(base + ep, "2s", connections)  # warm-up
             result["endpoints"][ep] = bombard(base + ep, duration, connections)
             print(f"  {cfg.name:28} {ep:11} {result['endpoints'][ep]['rps']:>10.0f} rps", flush=True)
-        result["rss_mb"] = tree_rss_kb(proc.pid) / 1024
+        result["rss_mb"] = sum(tree_rss_kb(p.pid) for p in procs) / 1024
     finally:
-        os.killpg(proc.pid, signal.SIGTERM)
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
-            proc.wait()
-        err = proc.stderr.read().decode(errors="replace") if proc.stderr else ""
-        if "Traceback" in err:
-            print(err[-2000:], file=sys.stderr)
+        for p in procs:
+            os.killpg(p.pid, signal.SIGTERM)
+        for p in procs:
+            try:
+                p.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                os.killpg(p.pid, signal.SIGKILL)
+                p.wait()
+            err = p.stderr.read().decode(errors="replace") if p.stderr else ""
+            if "Traceback" in err:
+                print(err[-2000:], file=sys.stderr)
     return result
 
 
