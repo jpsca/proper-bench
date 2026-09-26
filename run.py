@@ -13,6 +13,8 @@ Every app serves the same three routes over the same SQLite file, `app/fortunes.
 
 - `app/`         Proper, over WSGI and over RSGI, with Granian
 - `fastapi_app/` FastAPI + SQLAlchemy, over ASGI, with Granian
+- `litestar_app/` Litestar + SQLAlchemy, over ASGI, with Granian
+- `sanic_app/`   Sanic + SQLAlchemy asyncio, with its own server
 - `flask_app/`   Flask + Flask-SQLAlchemy, over WSGI, with Granian
 - `django_app/`  Django, over WSGI, with Granian
 - `rails_app/` Ruby on Rails, with Puma
@@ -122,7 +124,14 @@ def configs(workers: int, blocking_threads: int, gil_python: str | None) -> list
         out.append(granian("proper wsgi, gil", "server:app", "wsgi", python=gil_python))
         out.append(granian("proper rsgi, gil", "server:app", "rsgi", python=gil_python))
     out.append(granian("fastapi asgi", "fastapi_app.main:app", "asgi"))
+    out.append(granian("litestar asgi", "litestar_app.main:app", "asgi"))
     out.append(granian("flask wsgi", "flask_app.main:app", "wsgi"))
+    # Sanic ships its own server; workers are processes.
+    out.append(Config("sanic", [
+        sys.executable, "-m", "sanic", "sanic_app.main:app",
+        "--host", "127.0.0.1", "--port", str(PORT), "--workers", str(workers),
+        "--no-access-logs",
+    ], env={"SANIC_NOISY_EXCEPTIONS": "0"}))
     if (DJANGO_DIR / "wsgi.py").exists():
         out.append(granian(
             "django wsgi", "django_app.wsgi:application", "wsgi",

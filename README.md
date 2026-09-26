@@ -16,6 +16,8 @@ first run):
 | `flask_app/`   | Flask + Flask-SQLAlchemy     | Granian, WSGI          |
 | `django_app/`  | Django                       | Granian, WSGI          |
 | `fastapi_app/` | FastAPI + SQLAlchemy         | Granian, ASGI          |
+| `litestar_app/`| Litestar + SQLAlchemy        | Granian, ASGI          |
+| `sanic_app/`   | Sanic + SQLAlchemy asyncio   | Sanic's own server     |
 | `rails_app/`  | Ruby on Rails       | Puma             |
 | `beego/`       | Beego (Go)                   | its own                |
 | `actix/`       | Actix Web + sqlx + askama (Rust) | its own            |
@@ -28,25 +30,31 @@ first run):
 from one run. Python 3.14.4 free-threaded, Ruby 3.4.9, Go 1.27, Rust 1.98.
 Granian and Puma with 16 threads in total: 4 workers of 4 threads, or for
 Proper's second row 2 processes of 2 workers of 4 threads, which is what
-`proper run` does with `PROCESSES = 2`. FastAPI runs 4 ASGI workers and its
-own thread pool for the sync endpoints. Go and Rust use every core.
+`proper run` does with `PROCESSES = 2`. FastAPI and Litestar run 4 ASGI
+workers and their own thread pools for the sync endpoints; Sanic runs 4 of
+its own worker processes. Go and Rust use every core.
 
-| server                                   | plaintext rps |    json rps | fortunes rps | fortunes p50 | fortunes p99 |        RSS |
-|------------------------------------------|--------------:|------------:|-------------:|-------------:|-------------:|-----------:|
-| Rails 8.1, Puma                          |         9,772 |      10,398 |        6,584 |       9.6 ms |      13.5 ms |     492 MB |
-| Django 6.1, Granian WSGI                 |        54,888 |      51,559 |       10,252 |       5.8 ms |      32.1 ms |     157 MB |
-| FastAPI 0.141 + SQLAlchemy, Granian ASGI |        46,025 |      41,236 |       11,570 |       3.4 ms |      60.6 ms |     311 MB |
-| Flask 3.1 + SQLAlchemy, Granian WSGI     |        78,419 |      71,957 |       13,871 |       3.0 ms |      41.3 ms |     190 MB |
-| **Proper 0.26, 2 processes**             |   **130,486** | **116,711** |   **34,217** |   **1.7 ms** |   **4.3 ms** | **306 MB** |
-| **Proper 0.26, Granian WSGI**            |   **115,658** | **108,283** |   **35,014** |   **1.7 ms** |   **4.2 ms** | **186 MB** |
-| Beego 2.3 (Go)                           |       319,266 |     286,463 |       35,380 |       1.1 ms |       9.3 ms |      62 MB |
-| Actix Web 4.15 + sqlx + askama (Rust)    |       681,178 |     682,365 |       51,656 |       1.1 ms |       3.5 ms |      19 MB |
-| Topcoat 0.9 + Toasty (Rust)              |       421,616 |     424,008 |      198,484 |       0.3 ms |       0.8 ms |      17 MB |
+| server                                   | plaintext rps | json rps | fortunes rps | fortunes p50 | fortunes p99 | RSS    |
+|------------------------------------------|--------------:|---------:|-------------:|-------------:|-------------:|-------:|
+| Proper 0.26, Granian WSGI                |       116,828 |  108,427 |       35,063 |       1.7 ms |       4.3 ms | 187 MB |
+| Proper 0.26, 2 processes                 |       129,495 |  118,494 |       34,151 |       1.7 ms |       4.4 ms | 316 MB |
+| Flask 3.1 + SQLAlchemy, Granian WSGI     |        76,252 |   72,359 |       13,669 |       3.0 ms |      40.0 ms | 196 MB |
+| Litestar 2.24 + SQLAlchemy, Granian ASGI |       100,935 |   97,398 |       12,239 |       3.6 ms |      50.5 ms | 263 MB |
+| FastAPI 0.141 + SQLAlchemy, Granian ASGI |        49,334 |   44,351 |       11,767 |       3.3 ms |      61.3 ms | 313 MB |
+| Sanic 25.12 + SQLAlchemy asyncio, own server | 149,176 |  133,980 |       10,300 |       5.6 ms |      10.5 ms | 606 MB |
+| Django 6.1, Granian WSGI                 |        56,310 |   51,340 |       10,097 |       5.7 ms |      31.9 ms | 164 MB |
+| Rails 8.1, Puma                          |         9,685 |   10,072 |        6,454 |       9.9 ms |      13.0 ms | 491 MB |
+| Beego 2.3 (Go)                           |       318,146 |  257,260 |       31,138 |       1.2 ms |      10.7 ms |  63 MB |
+| Actix Web 4.15 + sqlx + askama (Rust)    |       630,327 |  620,509 |       48,497 |       1.1 ms |       4.4 ms |  19 MB |
+| Topcoat 0.9 + Toasty (Rust)              |       321,294 |  324,361 |      181,794 |       0.3 ms |       1.0 ms |  17 MB |
 
 RSS is the whole process tree after the run. Between runs, Proper's plaintext
-moves within about 10% and Beego's fortunes between 31k and 36k; read Proper
-and Beego on fortunes as even. SQLAlchemy 2.1 has no compiled wheel for
-free-threaded Python yet, so Flask and FastAPI run its pure-Python paths.
+moves within about 10%, Beego's fortunes between 31k and 36k, and the two Rust
+servers' plaintext by 20% or more (they are the ones bombardier holds back);
+read Proper and Beego on fortunes as even. SQLAlchemy 2.1 has no compiled
+wheel for free-threaded Python yet, so the SQLAlchemy apps run its pure-Python
+paths. Sanic's plaintext comes from uvloop, httptools and four processes with
+nothing shared; its fortunes number is where the async database path costs.
 Actix's fortunes number is bounded by sqlx, whose SQLite driver runs each
 query on a blocking thread; Topcoat's Toasty talks to SQLite directly.
 
@@ -90,7 +98,8 @@ uv run python threads.py /plaintext       # how Proper scales across threads in 
   routes; Django runs its standard middleware stack, with signed-cookie
   sessions; Flask and FastAPI run as generated, with no extra middleware;
   Proper runs its full pipeline.
-- The SQLAlchemy apps use sync sessions, the common way; FastAPI runs those
-  endpoints in its thread pool.
+- The SQLAlchemy apps use sync sessions, the common way; FastAPI and Litestar
+  run those endpoints in their thread pools. Sanic, being async throughout,
+  uses SQLAlchemy's asyncio extension over aiosqlite.
 - bombardier runs on the same machine and competes for CPU: the fastest
   servers are held back by it more than the slow ones are.
