@@ -17,6 +17,7 @@ Every app serves the same three routes over the same SQLite file, `app/fortunes.
 - `django_app/`  Django, over WSGI, with Granian
 - `rails_app/` Ruby on Rails, with Puma
 - `beego/`    Go, Beego
+- `actix/`    Rust, Actix Web with sqlx and askama
 - `topcoat/`  Rust, Topcoat
 
 Proper and Django run on this project's Python, which is free-threaded; pass
@@ -49,6 +50,8 @@ BEEGO_DIR = HERE / "beego"
 BEEGO_BIN = BEEGO_DIR / "beego-bench"
 TOPCOAT_DIR = HERE / "topcoat"
 TOPCOAT_BIN = TOPCOAT_DIR / "target/release/proper-bench-topcoat"
+ACTIX_DIR = HERE / "actix"
+ACTIX_BIN = ACTIX_DIR / "target/release/proper-bench-actix"
 RAILS_DIR = HERE / "rails_app"
 DJANGO_DIR = HERE / "django_app"
 # The mise-built Ruby links against libcrypt.so.2, which this distro does not
@@ -74,9 +77,10 @@ def build_reference_apps() -> None:
         print("go not found, skipping beego", file=sys.stderr)
     cargo = tool("cargo", ".cargo/bin/cargo")
     if cargo:
-        subprocess.run([cargo, "build", "--release", "--quiet"], cwd=TOPCOAT_DIR, check=True)
+        for rust_dir in (TOPCOAT_DIR, ACTIX_DIR):
+            subprocess.run([cargo, "build", "--release", "--quiet"], cwd=rust_dir, check=True)
     else:
-        print("cargo not found, skipping topcoat", file=sys.stderr)
+        print("cargo not found, skipping topcoat and actix", file=sys.stderr)
 
 
 @dataclass
@@ -134,6 +138,8 @@ def configs(workers: int, blocking_threads: int, gil_python: str | None) -> list
         }, cwd=str(RAILS_DIR)))
     if BEEGO_BIN.exists():
         out.append(Config("beego (go)", [str(BEEGO_BIN)], env={"PORT": str(PORT)}))
+    if ACTIX_BIN.exists():
+        out.append(Config("actix (rust)", [str(ACTIX_BIN)], env={"PORT": str(PORT)}))
     if TOPCOAT_BIN.exists():
         out.append(Config("topcoat (rust)", [str(TOPCOAT_BIN)], env={"PORT": str(PORT)}))
     return out

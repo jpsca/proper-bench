@@ -17,8 +17,9 @@ first run):
 | `django_app/`  | Django                       | Granian, WSGI          |
 | `fastapi_app/` | FastAPI + SQLAlchemy         | Granian, ASGI          |
 | `rails_app/`  | Ruby on Rails       | Puma             |
-| `beego/`      | Beego (Go)          | its own          |
-| `topcoat/`    | Topcoat (Rust)      | its own          |
+| `beego/`       | Beego (Go)                   | its own                |
+| `actix/`       | Actix Web + sqlx + askama (Rust) | its own            |
+| `topcoat/`     | Topcoat + Toasty (Rust)      | its own                |
 
 ## Results
 
@@ -30,21 +31,24 @@ Proper's second row 2 processes of 2 workers of 4 threads, which is what
 `proper run` does with `PROCESSES = 2`. FastAPI runs 4 ASGI workers and its
 own thread pool for the sync endpoints. Go and Rust use every core.
 
-| server                              | plaintext rps | json rps | fortunes rps | fortunes p50 | fortunes p99 | RSS    |
-|-------------------------------------|--------------:|---------:|-------------:|-------------:|-------------:|-------:|
-| Proper 0.26, Granian WSGI           |       115,945 |  109,762 |       35,130 |       1.7 ms |       4.3 ms | 185 MB |
-| Proper 0.26, 2 processes            |       130,966 |  121,071 |       34,084 |       1.7 ms |       4.6 ms | 317 MB |
-| Flask 3.1 + SQLAlchemy, Granian WSGI |       78,355 |   72,738 |       13,957 |       3.1 ms |      42.1 ms | 192 MB |
-| Django 6.1, Granian WSGI            |        55,801 |   51,790 |       10,306 |       4.7 ms |      31.1 ms | 162 MB |
-| FastAPI 0.141 + SQLAlchemy, Granian ASGI |   44,983 |   42,384 |       11,509 |       3.5 ms |      60.4 ms | 320 MB |
-| Rails 8.1, Puma                     |         9,782 |   10,420 |        6,530 |       9.6 ms |      13.7 ms | 470 MB |
-| Beego 2.3 (Go)                      |       317,831 |  282,084 |       35,884 |       1.0 ms |       9.1 ms |  62 MB |
-| Topcoat 0.9 (Rust)                  |       423,709 |  418,326 |      200,165 |       0.3 ms |       0.8 ms |  17 MB |
+| server                                   | plaintext rps | json rps | fortunes rps | fortunes p50 | fortunes p99 | RSS    |
+|------------------------------------------|--------------:|---------:|-------------:|-------------:|-------------:|-------:|
+| Proper 0.26, Granian WSGI                |       115,658 |  108,283 |       35,014 |       1.7 ms |       4.2 ms | 186 MB |
+| Proper 0.26, 2 processes                 |       130,486 |  116,711 |       34,217 |       1.7 ms |       4.3 ms | 306 MB |
+| Flask 3.1 + SQLAlchemy, Granian WSGI     |        78,419 |   71,957 |       13,871 |       3.0 ms |      41.3 ms | 190 MB |
+| Django 6.1, Granian WSGI                 |        54,888 |   51,559 |       10,252 |       5.8 ms |      32.1 ms | 157 MB |
+| FastAPI 0.141 + SQLAlchemy, Granian ASGI |        46,025 |   41,236 |       11,570 |       3.4 ms |      60.6 ms | 311 MB |
+| Rails 8.1, Puma                          |         9,772 |   10,398 |        6,584 |       9.6 ms |      13.5 ms | 492 MB |
+| Beego 2.3 (Go)                           |       319,266 |  286,463 |       35,380 |       1.1 ms |       9.3 ms |  62 MB |
+| Actix Web 4.15 + sqlx + askama (Rust)    |       681,178 |  682,365 |       51,656 |       1.1 ms |       3.5 ms |  19 MB |
+| Topcoat 0.9 + Toasty (Rust)              |       421,616 |  424,008 |      198,484 |       0.3 ms |       0.8 ms |  17 MB |
 
 RSS is the whole process tree after the run. Between runs, Proper's plaintext
 moves within about 10% and Beego's fortunes between 31k and 36k; read Proper
 and Beego on fortunes as even. SQLAlchemy 2.1 has no compiled wheel for
 free-threaded Python yet, so Flask and FastAPI run its pure-Python paths.
+Actix's fortunes number is bounded by sqlx, whose SQLite driver runs each
+query on a blocking thread; Topcoat's Toasty talks to SQLite directly.
 
 ## Running
 
@@ -71,7 +75,7 @@ uv run python threads.py /plaintext       # how Proper scales across threads in 
 - [uv](https://docs.astral.sh/uv/); it installs Python 3.14t itself.
 - [bombardier](https://github.com/codesenberg/bombardier) on PATH or in `~/go/bin`.
 - Go, on PATH or in `~/go/bin`, for Beego. Skipped if missing.
-- Rust (`cargo`), on PATH or in `~/.cargo/bin`, for Topcoat. Skipped if missing.
+- Rust (`cargo`), on PATH or in `~/.cargo/bin`, for Actix and Topcoat. Skipped if missing.
 - Ruby 3.4 with Bundler for Rails; run `bundle install` in `rails_app/`.
   Skipped if `rails_app/config.ru` is missing. A Ruby built by mise for
   another distro may need `libcrypt.so.2`: `ln -s /lib/x86_64-linux-gnu/libcrypt.so.1

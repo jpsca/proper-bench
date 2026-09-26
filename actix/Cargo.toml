@@ -1,0 +1,17 @@
+[package]
+name = "proper-bench-actix"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "The Actix Web reference app for the Proper benchmarks"
+
+[dependencies]
+actix-web = "4.15"
+askama = "0.16"
+serde = { version = "1", features = ["derive"] }
+sqlx = { version = "0.9", features = ["runtime-tokio", "sqlite"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
