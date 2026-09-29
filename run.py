@@ -9,7 +9,8 @@ against each endpoint, samples the RSS of the whole process tree, stops the
 server and prints a Markdown table. Results are also written as JSON to
 `results/`.
 
-Every app serves the same three routes over the same SQLite file, `app/fortunes.db`:
+Every app serves the same three routes over the same SQLite file, `app/fortunes.db`,
+and the ones that have it, a fourth (`/fortunes/7`, a page of a real app):
 
 - `app/`         Proper, over WSGI and over RSGI, with Granian
 - `fastapi_app/` FastAPI + SQLAlchemy, over ASGI, with Granian
@@ -30,6 +31,8 @@ and `~/.cargo/bin`. Go and Rust use every core by default; `--workers` and
 """
 import argparse
 import json
+import urllib.error
+import urllib.request
 import os
 import shutil
 import signal
@@ -46,7 +49,9 @@ HERE = Path(__file__).parent
 ROOT = HERE
 RESULTS = HERE / "results"
 PORT = 8123
-ENDPOINTS = ("/plaintext", "/json", "/fortunes")
+ENDPOINTS = ("/plaintext", "/json", "/fortunes", "/fortunes/7")
+# An app that does not serve a route (yet) gets "-" for it, not a run of 404s.
+COLUMNS = {"/plaintext": "plaintext", "/json": "json", "/fortunes": "fortunes", "/fortunes/7": "page"}
 BOMBARDIER = shutil.which("bombardier") or str(Path.home() / "go/bin/bombardier")
 BEEGO_DIR = HERE / "beego"
 BEEGO_BIN = BEEGO_DIR / "beego-bench"
@@ -186,6 +191,17 @@ def tree_rss_kb(pid: int) -> int:
     return total
 
 
+def serves(url: str) -> bool:
+    """Whether the server answers `url` with something other than 404."""
+    try:
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            return resp.status != 404
+    except urllib.error.HTTPError as err:
+        return err.code != 404
+    except urllib.error.URLError:
+        return False
+
+
 def bombard(url: str, duration: str, connections: int) -> dict:
     out = subprocess.run(
         [BOMBARDIER, "-c", str(connections), "-d", duration, "-l",
@@ -219,6 +235,10 @@ def run_config(cfg: Config, duration: str, connections: int) -> dict:
         time.sleep(1.0)
         base = f"http://127.0.0.1:{PORT}"
         for ep in ENDPOINTS:
+            if not serves(base + ep):
+                result["endpoints"][ep] = None
+                print(f"  {cfg.name:28} {ep:11} {'-':>10}", flush=True)
+                continue
             bombard(base + ep, "2s", connections)  # warm-up
             result["endpoints"][ep] = bombard(base + ep, duration, connections)
             print(f"  {cfg.name:28} {ep:11} {result['endpoints'][ep]['rps']:>10.0f} rps", flush=True)
@@ -238,22 +258,32 @@ def run_config(cfg: Config, duration: str, connections: int) -> dict:
     return result
 
 
+def _cell(value: dict | None, key: str, fmt: str) -> str:
+    return "-" if value is None else format(value[key], fmt)
+
+
 def markdown(results: list[dict], meta: dict) -> str:
     lines = [
         f"Workers: {meta['workers']}, connections: {meta['connections']}, "
         f"duration: {meta['duration']} per endpoint, host: {meta['host']}",
         "",
-        "| server | plaintext rps | json rps | fortunes rps | fortunes p50 ms | fortunes p99 ms | RSS MB |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| server | plaintext rps | json rps | fortunes rps | fortunes p50 ms | fortunes p99 ms "
+        "| page rps | page p99 ms | RSS MB |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for r in results:
         e = r["endpoints"]
         f = e["/fortunes"]
+        g = e.get("/fortunes/7")
         lines.append(
-            f"| {r['name']} | {e['/plaintext']['rps']:,.0f} | {e['/json']['rps']:,.0f} "
-            f"| {f['rps']:,.0f} | {f['p50_ms']:.2f} | {f['p99_ms']:.2f} | {r['rss_mb']:.0f} |"
+            f"| {r['name']} | {_cell(e['/plaintext'], 'rps', ',.0f')} | {_cell(e['/json'], 'rps', ',.0f')} "
+            f"| {_cell(f, 'rps', ',.0f')} | {_cell(f, 'p50_ms', '.2f')} | {_cell(f, 'p99_ms', '.2f')} "
+            f"| {_cell(g, 'rps', ',.0f')} | {_cell(g, 'p99_ms', '.2f')} | {r['rss_mb']:.0f} |"
         )
-    bad = [(r["name"], ep, v["non2xx"]) for r in results for ep, v in r["endpoints"].items() if v["non2xx"]]
+    bad = [
+        (r["name"], ep, v["non2xx"])
+        for r in results for ep, v in r["endpoints"].items() if v and v["non2xx"]
+    ]
     if bad:
         lines += ["", "Non-2xx responses:"] + [f"- {n} {ep}: {c}" for n, ep, c in bad]
     return "\n".join(lines)

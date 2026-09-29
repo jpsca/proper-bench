@@ -1,0 +1,20 @@
+{#import "../nav.jx" as Nav #}
+{#def title = '', lang = 'en' #}
+
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ title or "Fortunes" }}</title>
+  {% for url in assets.collect_css() -%}
+  <link rel="stylesheet" href="{{ url }}">
+  {% endfor -%}
+</head>
+<body {{ attrs.render() }}>
+  <Nav />
+  <main class="container">
+    {{ content }}
+  </main>
+</body>
+</html>

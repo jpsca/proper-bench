@@ -1,0 +1,8 @@
+{% extends "layout.html" %}
+{% block content %}
+  <ul>
+  {% for (f, url) in fortunes %}
+    <li><a href="{{ url }}">{{ f.message }}</a></li>
+  {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,0 +1,6 @@
+<nav>
+  <a href="{% url 'fortunes_index' %}">Fortunes</a>
+  {% for n in nav_ids %}
+  <a href="{% url 'fortunes_show' n %}" {% if n == current_id %}class="active"{% endif %}>#{{ n }}</a>
+  {% endfor %}
+</nav>

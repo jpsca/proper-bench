@@ -12,6 +12,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 ROOT_URLCONF = "django_app.urls"

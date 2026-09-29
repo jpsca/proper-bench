@@ -1,0 +1,10 @@
+{#import "layouts/app.jx" as Layout #}
+{#def fortunes #}
+
+<Layout title="Fortunes">
+  <ul>
+  {% for f in fortunes -%}
+    <li><a href="{{ url_for('Fortunes.show', id=f.id) }}">{{ f.message }}</a></li>
+  {% endfor -%}
+  </ul>
+</Layout>

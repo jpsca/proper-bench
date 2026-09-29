@@ -9,6 +9,12 @@ first run):
 - `/json`: a small dict serialized.
 - `/fortunes`: 12 rows read from SQLite, one added, sorted, rendered with a
   template and HTML-escaped. The one that resembles a real page.
+- `/fortunes/7`: a page of a real app, the "show" of a CRUD resource: the
+  filters a new Proper app runs on every request (origin check, rate
+  limiting, pagination and security headers), one row loaded by id or
+  404, and a view rendered inside a layout with a nav partial full of URL
+  helpers, in an app with fifty other resources registered. Every app serves it except Rails, Sanic, Litestar and
+  Topcoat, which show "-" for it.
 
 | framework                                | plaintext rps |    json rps | fortunes rps | fortunes p50 | fortunes p99 |        RSS |
 |----------------------------------------- | ------------: | -----------:| ------------:| ------------:| ------------:| ----------:|

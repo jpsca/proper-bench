@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block title %}Fortune #{{ fortune.id }}{% endblock %}
+{% block content %}
+  <article id="fortune-{{ fortune.id }}">
+    <h1>Fortune #{{ fortune.id }}</h1>
+    <blockquote>{{ fortune.message }}</blockquote>
+    <p><a href="{% url 'fortunes_index' %}">Back</a></p>
+  </article>
+{% endblock %}

@@ -1,0 +1,10 @@
+{#import "layouts/app.jx" as Layout #}
+{#def fortune #}
+
+<Layout title={{ "Fortune #" ~ fortune.id }}>
+  <article id="fortune-{{ fortune.id }}">
+    <h1>Fortune #{{ fortune.id }}</h1>
+    <blockquote>{{ fortune.message }}</blockquote>
+    <p><a href="{{ url_for('Fortunes.index') }}">Back</a></p>
+  </article>
+</Layout>
