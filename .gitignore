@@ -10,3 +10,6 @@ django_app/db.sqlite3
 rails_app/tmp/
 rails_app/log/
 rails_app/storage/*.sqlite3*
+
+# Views compiled by minijx
+_compiled/

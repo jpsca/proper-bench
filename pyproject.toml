@@ -26,3 +26,4 @@ proper = { path = "../proper", editable = true }
 [tool.ruff]
 line-length = 100
 target-version = "py314"
+extend-exclude = ["_compiled"]
