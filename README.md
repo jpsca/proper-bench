@@ -16,18 +16,18 @@ first run):
   helpers, in an app with fifty other resources registered. Every app serves it except Rails, Sanic, Litestar and
   Topcoat, which show "-" for it.
 
-| framework                                | plaintext rps |    json rps | fortunes rps | fortunes p50 | fortunes p99 |   page rps |   page p99 |        RSS |
-|----------------------------------------- | ------------: | ----------: | -----------: | -----------: | -----------: | ---------: | ---------: | ---------: |
-| Rails 8.1, Puma                          |        10,547 |      11,215 |        7,112 |       9.0 ms |      13.6 ms |          - |          - |     493 MB |
-| Django 6.1, Granian WSGI                 |        56,493 |      52,337 |        9,694 |       5.7 ms |      30.1 ms |      9,833 |    31.7 ms |     146 MB |
-| Sanic 25.12 + SQLAlchemy asyncio         |       162,105 |     149,533 |       10,722 |       5.7 ms |       8.7 ms |          - |          - |     605 MB |
-| FastAPI 0.141 + SQLAlchemy, Granian ASGI |        52,908 |      47,846 |       12,416 |       2.9 ms |      68.9 ms |      7,272 |    14.6 ms |     327 MB |
-| Litestar 2.24 + SQLAlchemy, Granian ASGI |       115,216 |     112,997 |       12,642 |       3.3 ms |      56.0 ms |          - |          - |     274 MB |
-| Flask 3.1 + SQLAlchemy, Granian WSGI     |        85,815 |      79,962 |       15,184 |       2.6 ms |      37.3 ms |     17,226 |     7.0 ms |     180 MB |
-| Beego 2.3 (Go)                           |       366,527 |     321,701 |       35,622 |       1.1 ms |       8.7 ms |     41,966 |     7.6 ms |      66 MB |
-| **Proper 0.28, Granian WSGI**            |   **122,511** | **117,018** |   **45,732** |   **1.3 ms** |   **3.1 ms** | **46,706** | **4.1 ms** | **162 MB** |
-| Actix Web 4.15 + sqlx + askama (Rust)    |       795,747 |     769,119 |       49,970 |       1.2 ms |       3.0 ms |    203,071 |     1.1 ms |      37 MB |
-| Topcoat 0.9 + Toasty (Rust)              |       459,384 |     460,216 |      230,775 |       0.3 ms |       0.7 ms |          - |          - |      16 MB |
+| framework                                | plaintext rps |    json rps | fortunes rps | fortunes p50 ms | fortunes p99 ms |   page rps | page p99 ms |  RSS MB |
+|----------------------------------------- | ------------: | ----------: | -----------: | --------------: | --------------: | ---------: | ----------: | ------: |
+| Rails 8.1, Puma                          |        10,400 |      11,087 |        6,774 |             9.3 |            14.9 |          - |           - |     476 |
+| Django 6.1, Granian WSGI                 |        56,189 |      53,087 |        9,773 |             5.6 |            30.6 |      9,261 |        34.2 |     145 |
+| Sanic 25.12 + SQLAlchemy asyncio         |       160,871 |     146,739 |       10,453 |             5.9 |             8.3 |          - |           - |     618 |
+| FastAPI 0.141 + SQLAlchemy, Granian ASGI |        53,167 |      49,233 |       12,382 |             2.9 |            69.3 |      7,146 |        13.5 |     325 |
+| Litestar 2.24 + SQLAlchemy, Granian ASGI |       114,245 |     112,688 |       12,476 |             3.3 |            56.3 |          - |           - |     272 |
+| Flask 3.1 + SQLAlchemy, Granian WSGI     |        83,136 |      79,016 |       14,925 |             2.7 |            37.9 |     17,422 |         6.9 |     187 |
+| Beego 2.3 (Go)                           |       346,835 |     308,574 |       36,525 |             1.1 |             8.6 |     42,257 |         7.7 |      65 |
+| Actix Web 4.15 + sqlx + askama (Rust)    |       796,488 |     764,614 |       49,319 |             1.2 |             3.3 |    187,302 |         1.4 |      37 |
+| **Proper 0.34, Granian WSGI**            |   **129,313** | **122,407** |   **49,559** |         **1.3** |         **2.6** | **50,488** |     **2.7** | **114** |
+| Topcoat 0.9 + Toasty (Rust)              |       437,137 |     445,011 |      207,689 |             0.3 |             0.8 |          - |           - |      17 |
 
 RSS is the whole process tree after the run. Between runs, Proper's plaintext
 moves within about 10%, Beego's fortunes between 31k and 36k, and the two Rust

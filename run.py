@@ -12,7 +12,7 @@ server and prints a Markdown table. Results are also written as JSON to
 Every app serves the same three routes over the same SQLite file, `app/fortunes.db`,
 and the ones that have it, a fourth (`/fortunes/7`, a page of a real app):
 
-- `app/`         Proper, over WSGI and over RSGI, with Granian
+- `app/`         Proper, over WSGI, with Granian
 - `fastapi_app/` FastAPI + SQLAlchemy, over ASGI, with Granian
 - `litestar_app/` Litestar + SQLAlchemy, over ASGI, with Granian
 - `sanic_app/`   Sanic + SQLAlchemy asyncio, with its own server
@@ -123,11 +123,9 @@ def configs(workers: int, blocking_threads: int, gil_python: str | None) -> list
             "proper wsgi, 2 processes", "server:app", "wsgi",
             workers=max(1, workers // 2), copies=2,
         ),
-        granian("proper rsgi", "server:app", "rsgi"),
     ]
     if gil_python:
         out.append(granian("proper wsgi, gil", "server:app", "wsgi", python=gil_python))
-        out.append(granian("proper rsgi, gil", "server:app", "rsgi", python=gil_python))
     out.append(granian("fastapi asgi", "fastapi_app.main:app", "asgi"))
     out.append(granian("litestar asgi", "litestar_app.main:app", "asgi"))
     out.append(granian("flask wsgi", "flask_app.main:app", "wsgi"))
